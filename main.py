@@ -1,10 +1,10 @@
 from pathlib import Path
 import logging
-import tempfile
-import uuid
+import io
 
 import flask
 from google.cloud import storage
+import rasterio
 
 
 storage_client = storage.Client()
@@ -52,10 +52,11 @@ def get_gcs_png(request):
         logging.error("Not allowed file", exc_info=True)
         flask.abort(400)
 
-    file = storage_client.bucket(bucket).blob(filename)
-    tmp_filepath = str(Path(tempfile.gettempdir()) / str(uuid.uuid4()))
-    file.download_to_filename(tmp_filepath)
-    return flask.send_file(tmp_filepath, file.content_type)
+    file = storage_client.bucket(bucket).get_blob(filename)
+
+    return flask.send_file(io.BytesIO(file.download_as_string()),
+                           mimetype=file.content_type,
+                           as_attachment=False)
 
 
 def get_raster_stat(request):
@@ -65,3 +66,14 @@ def get_raster_stat(request):
     :param request:
     :return:
     """
+    try:
+        filename = request.args["filename"]
+        bucket = request.args["bucket"]
+    except KeyError:
+        logging.error("A parameter is missing", exc_info=True)
+        flask.abort(400)
+
+    with rasterio.open(f"gs://{bucket}/{filename}") as src:
+        profile = src.profile
+
+    return flask.jsonify(profile)
