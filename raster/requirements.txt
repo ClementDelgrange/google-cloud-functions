@@ -1,0 +1,4 @@
+flask
+rasterio==1.0.18
+google-cloud-storage
+google-auth

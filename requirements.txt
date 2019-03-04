@@ -1,6 +1,0 @@
-flask
-rasterio
-google-cloud-storage
-google-cloud-logging
-google-cloud-bigquery
-
